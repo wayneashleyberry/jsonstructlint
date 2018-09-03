@@ -34,13 +34,6 @@ func Test_isCamelCase(t *testing.T) {
 			},
 			want: false,
 		},
-		{
-			name: "whitespace",
-			args: args{
-				val: "foo bar",
-			},
-			want: false,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
