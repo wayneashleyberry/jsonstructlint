@@ -10,4 +10,5 @@ jsonstructlint ./...
 ./tesdata/testdata.go:10: "foo bar" contains whitespace
 ./tesdata/testdata.go:11: "TitleCase" is not camelcase
 ./tesdata/testdata.go:12: "a b" contains whitespace
+./tesdata/testdata.go:17: "Inline Struct" contains whitespace
 ```
