@@ -4,8 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
-	"go/parser"
-	"go/token"
 	"go/types"
 	"log"
 	"os"
@@ -41,11 +39,6 @@ func main() {
 
 	var lines []string
 
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	for _, pkg := range pkgs {
 		for _, obj := range pkg.TypesInfo.Defs {
 			if obj == nil {
@@ -69,7 +62,6 @@ func main() {
 			for i := 0; i < strukt.NumFields(); i++ {
 				field := strukt.Field(i)
 				pos := pkg.Fset.Position(field.Pos())
-				relname := strings.Replace(pos.Filename, dir, ".", 1)
 				tag := reflect.StructTag(strukt.Tag(i))
 				val, ok := tag.Lookup("json")
 
@@ -82,12 +74,12 @@ func main() {
 					if trim(val) != val {
 						lines = append(
 							lines,
-							fmt.Sprintf(`%s:%d: "%s" contains whitespace`, relname, pos.Line, val),
+							fmt.Sprintf(`%s: "%s" contains whitespace`, pos, val),
 						)
 					} else if !isCamelCase(val) {
 						lines = append(
 							lines,
-							fmt.Sprintf(`%s:%d: "%s" is not camelcase`, relname, pos.Line, val),
+							fmt.Sprintf(`%s: "%s" is not camelcase`, pos, val),
 						)
 					}
 				}
@@ -114,47 +106,6 @@ func isCamelCase(val string) bool {
 	}
 
 	return true
-}
-
-func lint(filename string) []string {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
-
-	if err != nil {
-		panic(err)
-	}
-
-	messages := []string{}
-
-	for _, decl := range f.Decls {
-		funcDecl, ok := decl.(*ast.FuncDecl)
-		if ok {
-			for _, s := range funcDecl.Body.List {
-				decl, ok := s.(*ast.DeclStmt)
-				if ok {
-					typeDecl, ok := decl.Decl.(*ast.GenDecl)
-					if ok {
-						for _, s := range typeDecl.Specs {
-							m := lintSpec(fset, s)
-							messages = append(messages, m...)
-						}
-					}
-				}
-			}
-		}
-
-		typeDecl, ok := decl.(*ast.GenDecl)
-		if !ok {
-			continue
-		}
-
-		for _, spec := range typeDecl.Specs {
-			m := lintSpec(fset, spec)
-			messages = append(messages, m...)
-		}
-	}
-
-	return messages
 }
 
 func shouldIgnore(field *ast.Field) bool {
@@ -198,53 +149,4 @@ func trim(in string) string {
 		}
 		return r
 	}, in)
-}
-
-func lintSpec(fset *token.FileSet, spec ast.Spec) []string {
-	messages := []string{}
-
-	typespec, ok := spec.(*ast.TypeSpec)
-	if !ok {
-		return messages
-	}
-
-	structDecl, ok := typespec.Type.(*ast.StructType)
-	if !ok {
-		return messages
-	}
-
-	fields := structDecl.Fields.List
-
-	for _, field := range fields {
-		if field.Tag == nil {
-			continue
-		}
-		if shouldIgnore(field) {
-			continue
-		}
-		pos := fset.Position(field.Tag.ValuePos)
-		tag := reflect.StructTag(strings.Replace(field.Tag.Value, "`", "", -1))
-		val, ok := tag.Lookup("json")
-
-		if ok {
-			if strings.Contains(val, ",") {
-				parts := strings.Split(val, ",")
-				val = parts[0]
-			}
-
-			if trim(val) != val {
-				messages = append(
-					messages,
-					fmt.Sprintf(`%s:%d: "%s" contains whitespace`, pos.Filename, pos.Line, val),
-				)
-			} else if !isCamelCase(val) {
-				messages = append(
-					messages,
-					fmt.Sprintf(`%s:%d: "%s" is not camelcase`, pos.Filename, pos.Line, val),
-				)
-			}
-		}
-	}
-
-	return messages
 }
