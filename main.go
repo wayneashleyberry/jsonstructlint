@@ -124,7 +124,7 @@ func main() {
 					pos := pkg.Fset.Position(field.Pos())
 					lines = append(
 						lines,
-						fmt.Sprintf(`%s: %s is missing a struct tag`, pos, field.Name()),
+						fmt.Sprintf(`%s: %s.%s is missing a struct tag`, pos, typ.Obj().Name(), field.Name()),
 					)
 				}
 			}
