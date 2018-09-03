@@ -76,49 +76,76 @@ func lint(filename string) []string {
 	messages := []string{}
 
 	for _, decl := range f.Decls {
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if ok {
+			for _, s := range funcDecl.Body.List {
+				decl, ok := s.(*ast.DeclStmt)
+				if ok {
+					typeDecl, ok := decl.Decl.(*ast.GenDecl)
+					if ok {
+						for _, s := range typeDecl.Specs {
+							m := lintSpec(fset, s)
+							messages = append(messages, m...)
+						}
+					}
+				}
+			}
+		}
+
 		typeDecl, ok := decl.(*ast.GenDecl)
 		if !ok {
 			continue
 		}
+
 		for _, spec := range typeDecl.Specs {
-			typespec, ok := spec.(*ast.TypeSpec)
-			if !ok {
-				continue
+			m := lintSpec(fset, spec)
+			messages = append(messages, m...)
+		}
+	}
+
+	return messages
+}
+
+func lintSpec(fset *token.FileSet, spec ast.Spec) []string {
+	messages := []string{}
+
+	typespec, ok := spec.(*ast.TypeSpec)
+	if !ok {
+		return messages
+	}
+
+	structDecl, ok := typespec.Type.(*ast.StructType)
+	if !ok {
+		return messages
+	}
+
+	fields := structDecl.Fields.List
+
+	for _, field := range fields {
+		if field.Tag == nil {
+			continue
+		}
+		pos := fset.Position(field.Tag.ValuePos)
+		tag := reflect.StructTag(strings.Replace(field.Tag.Value, "`", "", -1))
+		val, ok := tag.Lookup("json")
+
+		if ok {
+			if strings.Contains(val, ",") {
+				parts := strings.Split(val, ",")
+				val = parts[0]
 			}
-			structDecl, ok := typespec.Type.(*ast.StructType)
-			if !ok {
-				continue
+
+			if trim(val) != val {
+				messages = append(
+					messages,
+					fmt.Sprintf(`%s:%d: "%s" contains whitespace`, pos.Filename, pos.Line, val),
+				)
+			} else if !isCamelCase(val) {
+				messages = append(
+					messages,
+					fmt.Sprintf(`%s:%d: "%s" is not camelcase`, pos.Filename, pos.Line, val),
+				)
 			}
-			fields := structDecl.Fields.List
-
-			for _, field := range fields {
-				if field.Tag == nil {
-					continue
-				}
-				pos := fset.Position(field.Tag.ValuePos)
-				tag := reflect.StructTag(strings.Replace(field.Tag.Value, "`", "", -1))
-				val, ok := tag.Lookup("json")
-
-				if ok {
-					if strings.Contains(val, ",") {
-						parts := strings.Split(val, ",")
-						val = parts[0]
-					}
-
-					if trim(val) != val {
-						messages = append(
-							messages,
-							fmt.Sprintf(`%s:%d: "%s" contains whitespace`, pos.Filename, pos.Line, val),
-						)
-					} else if !isCamelCase(val) {
-						messages = append(
-							messages,
-							fmt.Sprintf(`%s:%d: "%s" is not camelcase`, pos.Filename, pos.Line, val),
-						)
-					}
-				}
-			}
-
 		}
 	}
 

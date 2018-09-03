@@ -12,8 +12,8 @@ type Thing struct {
 	F8 []string `json:"a b,omitempty"`
 }
 
-func x() {
-	type y struct {
-		Z bool `json:"X Y Z"`
+func hasInlineStruct() {
+	type inline struct {
+		Z bool `json:"Inline Struct"`
 	}
 }
