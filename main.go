@@ -15,15 +15,6 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func trim(in string) string {
-	return strings.Map(func(r rune) rune {
-		if unicode.IsSpace(r) {
-			return -1
-		}
-		return r
-	}, in)
-}
-
 func main() {
 	flag.Parse()
 	pkgs, err := packages.Load(nil, flag.Args()...)
@@ -138,6 +129,15 @@ func containsIgnoreString(in string) bool {
 	}
 
 	return false
+}
+
+func trim(in string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, in)
 }
 
 func lintSpec(fset *token.FileSet, spec ast.Spec) []string {
