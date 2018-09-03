@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"log"
 	"os"
 	"reflect"
@@ -15,40 +16,103 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func trim(in string) string {
-	return strings.Map(func(r rune) rune {
-		if unicode.IsSpace(r) {
-			return -1
-		}
-		return r
-	}, in)
-}
-
 func main() {
 	flag.Parse()
-	pkgs, err := packages.Load(nil, flag.Args()...)
-	if err != nil {
-		log.Fatal(err)
+
+	importPaths := flag.Args()
+	if len(importPaths) == 0 {
+		importPaths = []string{"."}
 	}
 
-	messages := []string{}
+	var flags []string
 
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
+	cfg := &packages.Config{
+		Mode:       packages.LoadSyntax,
+		BuildFlags: flags,
+		Error: func(error) {
+			// don't print type check errors
+		},
 	}
+
+	pkgs, err := packages.Load(cfg, importPaths...)
+	if err != nil {
+		log.Fatalf("could not load packages: %s", err)
+	}
+
+	var lines []string
 
 	for _, pkg := range pkgs {
-		for _, filename := range pkg.GoFiles {
-			filename = strings.Replace(filename, dir, ".", 1)
-			messages = append(messages, lint(filename)...)
+		for _, obj := range pkg.TypesInfo.Defs {
+			if obj == nil {
+				continue
+			}
+
+			if _, ok := obj.(*types.TypeName); !ok {
+				continue
+			}
+
+			typ, ok := obj.Type().(*types.Named)
+			if !ok {
+				continue
+			}
+
+			strukt, ok := typ.Underlying().(*types.Struct)
+			if !ok {
+				continue
+			}
+
+			for i := 0; i < strukt.NumFields(); i++ {
+				field := strukt.Field(i)
+				pos := pkg.Fset.Position(field.Pos())
+				tag := reflect.StructTag(strukt.Tag(i))
+				val, ok := tag.Lookup("json")
+				ignore := false
+
+				for _, file := range pkg.GoFiles {
+					if file == pos.Filename {
+						fset := token.NewFileSet()
+						f, err := parser.ParseFile(fset, pos.Filename, nil, parser.ParseComments)
+						if err != nil {
+							log.Fatal(err)
+						}
+						for _, commentGroup := range f.Comments {
+							for _, comment := range commentGroup.List {
+								commentPos := pkg.Fset.Position(comment.Pos())
+								if commentPos.Line == pos.Line {
+									ignore = containsIgnoreString(comment.Text)
+								}
+							}
+						}
+					}
+				}
+
+				if ignore == false && ok {
+					if strings.Contains(val, ",") {
+						parts := strings.Split(val, ",")
+						val = parts[0]
+					}
+
+					if trim(val) != val {
+						lines = append(
+							lines,
+							fmt.Sprintf(`%s: "%s" contains whitespace`, pos, val),
+						)
+					} else if !isCamelCase(val) {
+						lines = append(
+							lines,
+							fmt.Sprintf(`%s: "%s" is not camelcase`, pos, val),
+						)
+					}
+				}
+			}
 		}
 	}
 
-	if len(messages) != 0 {
-		for _, message := range messages {
-			fmt.Println(message)
-		}
+	for _, line := range lines {
+		fmt.Println(line)
+	}
+
+	if len(lines) > 0 {
 		os.Exit(1)
 	}
 }
@@ -63,47 +127,6 @@ func isCamelCase(val string) bool {
 	}
 
 	return true
-}
-
-func lint(filename string) []string {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
-
-	if err != nil {
-		panic(err)
-	}
-
-	messages := []string{}
-
-	for _, decl := range f.Decls {
-		funcDecl, ok := decl.(*ast.FuncDecl)
-		if ok {
-			for _, s := range funcDecl.Body.List {
-				decl, ok := s.(*ast.DeclStmt)
-				if ok {
-					typeDecl, ok := decl.Decl.(*ast.GenDecl)
-					if ok {
-						for _, s := range typeDecl.Specs {
-							m := lintSpec(fset, s)
-							messages = append(messages, m...)
-						}
-					}
-				}
-			}
-		}
-
-		typeDecl, ok := decl.(*ast.GenDecl)
-		if !ok {
-			continue
-		}
-
-		for _, spec := range typeDecl.Specs {
-			m := lintSpec(fset, spec)
-			messages = append(messages, m...)
-		}
-	}
-
-	return messages
 }
 
 func shouldIgnore(field *ast.Field) bool {
@@ -140,51 +163,11 @@ func containsIgnoreString(in string) bool {
 	return false
 }
 
-func lintSpec(fset *token.FileSet, spec ast.Spec) []string {
-	messages := []string{}
-
-	typespec, ok := spec.(*ast.TypeSpec)
-	if !ok {
-		return messages
-	}
-
-	structDecl, ok := typespec.Type.(*ast.StructType)
-	if !ok {
-		return messages
-	}
-
-	fields := structDecl.Fields.List
-
-	for _, field := range fields {
-		if field.Tag == nil {
-			continue
+func trim(in string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
 		}
-		if shouldIgnore(field) {
-			continue
-		}
-		pos := fset.Position(field.Tag.ValuePos)
-		tag := reflect.StructTag(strings.Replace(field.Tag.Value, "`", "", -1))
-		val, ok := tag.Lookup("json")
-
-		if ok {
-			if strings.Contains(val, ",") {
-				parts := strings.Split(val, ",")
-				val = parts[0]
-			}
-
-			if trim(val) != val {
-				messages = append(
-					messages,
-					fmt.Sprintf(`%s:%d: "%s" contains whitespace`, pos.Filename, pos.Line, val),
-				)
-			} else if !isCamelCase(val) {
-				messages = append(
-					messages,
-					fmt.Sprintf(`%s:%d: "%s" is not camelcase`, pos.Filename, pos.Line, val),
-				)
-			}
-		}
-	}
-
-	return messages
+		return r
+	}, in)
 }

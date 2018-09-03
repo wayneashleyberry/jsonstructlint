@@ -18,4 +18,12 @@ func hasInlineStruct() {
 	type inline struct {
 		Z bool `json:"Inline Struct"`
 	}
+
+	fn := func() {
+		type foobar struct {
+			FX string `json:"Super Inline"`
+		}
+	}
+
+	fn()
 }
