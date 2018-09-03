@@ -62,9 +62,6 @@ func isCamelCase(val string) bool {
 		return false
 	}
 
-	if trim(val) != val {
-		return false
-	}
 	return true
 }
 
@@ -107,7 +104,13 @@ func lint(filename string) []string {
 						parts := strings.Split(val, ",")
 						val = parts[0]
 					}
-					if !isCamelCase(val) {
+
+					if trim(val) != val {
+						messages = append(
+							messages,
+							fmt.Sprintf(`%s:%d: "%s" contains whitespace`, pos.Filename, pos.Line, val),
+						)
+					} else if !isCamelCase(val) {
 						messages = append(
 							messages,
 							fmt.Sprintf(`%s:%d: "%s" is not camelcase`, pos.Filename, pos.Line, val),
