@@ -94,10 +94,14 @@ func lint(filename string) []string {
 				val, ok := tag.Lookup("json")
 
 				if ok {
+					if strings.Contains(val, ",") {
+						parts := strings.Split(val, ",")
+						val = parts[0]
+					}
 					if !isCamelCase(val) {
 						messages = append(
 							messages,
-							fmt.Sprintf("%s: %s is not camelcase", filename, val),
+							fmt.Sprintf(`%s: "%s" is not camelcase`, filename, val),
 						)
 					}
 				}
