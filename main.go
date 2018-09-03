@@ -30,9 +30,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	messages := []string{}
+
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for _, pkg := range pkgs {
 		for _, filename := range pkg.GoFiles {
+			filename = strings.Replace(filename, dir, ".", 1)
 			messages = append(messages, lint(filename)...)
 		}
 	}
@@ -90,6 +98,7 @@ func lint(filename string) []string {
 				if field.Tag == nil {
 					continue
 				}
+				pos := fset.Position(field.Tag.ValuePos)
 				tag := reflect.StructTag(strings.Replace(field.Tag.Value, "`", "", -1))
 				val, ok := tag.Lookup("json")
 
@@ -101,7 +110,7 @@ func lint(filename string) []string {
 					if !isCamelCase(val) {
 						messages = append(
 							messages,
-							fmt.Sprintf(`%s: "%s" is not camelcase`, filename, val),
+							fmt.Sprintf(`%s:%d: "%s" is not camelcase`, pos.Filename, pos.Line, val),
 						)
 					}
 				}
