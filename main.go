@@ -8,7 +8,17 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"unicode"
 )
+
+func trim(in string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, in)
+}
 
 func main() {
 	fset := token.NewFileSet()
@@ -34,7 +44,19 @@ func main() {
 			if strings.Contains(val, "_") {
 				messages = append(
 					messages,
-					fmt.Sprintf("%s is not camelcase", val),
+					fmt.Sprintf("`%s` is not camelcase", val),
+				)
+			}
+			if trim(val) != val {
+				messages = append(
+					messages,
+					fmt.Sprintf("`%s` contains whitespaces", val),
+				)
+			}
+			if strings.ToLower(string(val[0])) != string(val[0]) {
+				messages = append(
+					messages,
+					fmt.Sprintf("`%s` first character is not lowercase", val),
 				)
 			}
 		}
