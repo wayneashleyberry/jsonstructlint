@@ -6,9 +6,10 @@
 ```sh
 go get -u github.com/wayneashleyberry/jsonstructlint
 jsonstructlint ./...
-./tesdata/testdata.go:8: "x_y" is not camelcase
-./tesdata/testdata.go:10: "foo bar" contains whitespace
-./tesdata/testdata.go:11: "TitleCase" is not camelcase
-./tesdata/testdata.go:12: "a b" contains whitespace
-./tesdata/testdata.go:17: "Inline Struct" contains whitespace
+tesdata/testdata.go:8:2: "x_y" is not camelcase
+tesdata/testdata.go:10:2: "foo bar" contains whitespace
+tesdata/testdata.go:11:2: "TitleCase" is not camelcase
+tesdata/testdata.go:12:2: "a b" contains whitespace
+tesdata/testdata.go:19:3: "Inline Struct" contains whitespace
+tesdata/testdata.go:24:4: "Super Inline" contains whitespace
 ```
