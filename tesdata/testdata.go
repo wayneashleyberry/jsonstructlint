@@ -11,3 +11,9 @@ type Thing struct {
 	F7 *int     `json:"TitleCase"`
 	F8 []string `json:"a b,omitempty"`
 }
+
+func x() {
+	type y struct {
+		Z bool `json:"X Y Z"`
+	}
+}
