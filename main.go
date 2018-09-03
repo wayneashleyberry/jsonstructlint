@@ -61,6 +61,9 @@ func main() {
 				continue
 			}
 
+			hasJSON := []int{}
+			missingJSON := []int{}
+
 			for i := 0; i < strukt.NumFields(); i++ {
 				field := strukt.Field(i)
 				pos := pkg.Fset.Position(field.Pos())
@@ -86,7 +89,13 @@ func main() {
 					}
 				}
 
-				if ignore == false && ok {
+				if ignore == true {
+					continue
+				}
+
+				if ok {
+					hasJSON = append(hasJSON, i)
+
 					if strings.Contains(val, ",") {
 						parts := strings.Split(val, ",")
 						val = parts[0]
@@ -103,6 +112,20 @@ func main() {
 							fmt.Sprintf(`%s: "%s" is not camelcase`, pos, val),
 						)
 					}
+				} else {
+					missingJSON = append(missingJSON, i)
+				}
+			}
+
+			if len(hasJSON) > 0 && len(missingJSON) > 0 {
+				// some fields in the struct are missing json
+				for _, i := range missingJSON {
+					field := strukt.Field(i)
+					pos := pkg.Fset.Position(field.Pos())
+					lines = append(
+						lines,
+						fmt.Sprintf(`%s: %s is missing a struct tag`, pos, field.Name()),
+					)
 				}
 			}
 		}
