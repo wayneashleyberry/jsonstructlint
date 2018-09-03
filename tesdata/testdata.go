@@ -1,4 +1,4 @@
-package foo
+package testdata
 
 // Thing holds other things
 type Thing struct {

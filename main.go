@@ -1,14 +1,18 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"log"
 	"os"
 	"reflect"
 	"strings"
 	"unicode"
+
+	"golang.org/x/tools/go/packages"
 )
 
 func trim(in string) string {
@@ -21,51 +25,86 @@ func trim(in string) string {
 }
 
 func main() {
+	flag.Parse()
+	pkgs, err := packages.Load(nil, flag.Args()...)
+	if err != nil {
+		log.Fatal(err)
+	}
+	messages := []string{}
+	for _, pkg := range pkgs {
+		for _, filename := range pkg.GoFiles {
+			messages = append(messages, lint(filename)...)
+		}
+	}
+
+	if len(messages) != 0 {
+		for _, message := range messages {
+			fmt.Println(message)
+		}
+		os.Exit(1)
+	}
+}
+
+func isCamelCase(val string) bool {
+	if strings.Contains(val, "_") {
+		return false
+	}
+
+	if strings.ToLower(string(val[0])) != string(val[0]) {
+		return false
+	}
+
+	if trim(val) != val {
+		return false
+	}
+	return true
+}
+
+func lint(filename string) []string {
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, "./testdata/foo.go", nil, 0)
+	f, err := parser.ParseFile(fset, filename, nil, 0)
 
 	if err != nil {
 		panic(err)
 	}
 
-	typeDecl := f.Decls[0].(*ast.GenDecl)
-	structDecl := typeDecl.Specs[0].(*ast.TypeSpec).Type.(*ast.StructType)
-	fields := structDecl.Fields.List
-
 	messages := []string{}
 
-	for _, field := range fields {
-		if field.Tag == nil {
+	for _, decl := range f.Decls {
+		typeDecl, ok := decl.(*ast.GenDecl)
+		if !ok {
 			continue
 		}
-		tag := reflect.StructTag(strings.Replace(field.Tag.Value, "`", "", -1))
-		val, ok := tag.Lookup("json")
-		if ok {
-			if strings.Contains(val, "_") {
-				messages = append(
-					messages,
-					fmt.Sprintf("`%s` is not camelcase", val),
-				)
+		for _, spec := range typeDecl.Specs {
+			typespec, ok := spec.(*ast.TypeSpec)
+			if !ok {
+				continue
 			}
-			if trim(val) != val {
-				messages = append(
-					messages,
-					fmt.Sprintf("`%s` contains whitespaces", val),
-				)
+			structDecl, ok := typespec.Type.(*ast.StructType)
+			if !ok {
+				continue
 			}
-			if strings.ToLower(string(val[0])) != string(val[0]) {
-				messages = append(
-					messages,
-					fmt.Sprintf("`%s` first character is not lowercase", val),
-				)
+			fields := structDecl.Fields.List
+
+			for _, field := range fields {
+				if field.Tag == nil {
+					continue
+				}
+				tag := reflect.StructTag(strings.Replace(field.Tag.Value, "`", "", -1))
+				val, ok := tag.Lookup("json")
+
+				if ok {
+					if !isCamelCase(val) {
+						messages = append(
+							messages,
+							fmt.Sprintf("%s: %s is not camelcase", filename, val),
+						)
+					}
+				}
 			}
+
 		}
 	}
 
-	if len(messages) != 0 {
-		for _, msg := range messages {
-			fmt.Println(msg)
-		}
-		os.Exit(1)
-	}
+	return messages
 }
