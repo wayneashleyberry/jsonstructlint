@@ -69,3 +69,50 @@ func Test_trim(t *testing.T) {
 		})
 	}
 }
+
+func Test_containsIgnoreString(t *testing.T) {
+	type args struct {
+		in string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "empty string",
+			args: args{
+				in: "",
+			},
+			want: false,
+		},
+		{
+			name: "simple example",
+			args: args{
+				in: "nolint: jsonstructlint",
+			},
+			want: true,
+		},
+		{
+			name: "comma separated list",
+			args: args{
+				in: "nolint: foo,jsonstructlint,bar",
+			},
+			want: true,
+		},
+		{
+			name: "whitespace variant",
+			args: args{
+				in: "nolint:jsonstructlint",
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := containsIgnoreString(tt.args.in); got != tt.want {
+				t.Errorf("containsIgnoreString() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

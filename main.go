@@ -67,7 +67,7 @@ func isCamelCase(val string) bool {
 
 func lint(filename string) []string {
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filename, nil, 0)
+	f, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
 
 	if err != nil {
 		panic(err)
@@ -106,6 +106,40 @@ func lint(filename string) []string {
 	return messages
 }
 
+func shouldIgnore(field *ast.Field) bool {
+	if field.Comment == nil {
+		return false
+	}
+
+	if len(field.Comment.List) == 0 {
+		return false
+	}
+
+	for _, comment := range field.Comment.List {
+		if containsIgnoreString(comment.Text) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func containsIgnoreString(in string) bool {
+	if !strings.Contains(in, "nolint:") {
+		return false
+	}
+
+	parts := strings.Split(in, ":")
+
+	for _, part := range parts[1:] {
+		if strings.Contains(part, "jsonstructlint") {
+			return true
+		}
+	}
+
+	return false
+}
+
 func lintSpec(fset *token.FileSet, spec ast.Spec) []string {
 	messages := []string{}
 
@@ -123,6 +157,9 @@ func lintSpec(fset *token.FileSet, spec ast.Spec) []string {
 
 	for _, field := range fields {
 		if field.Tag == nil {
+			continue
+		}
+		if shouldIgnore(field) {
 			continue
 		}
 		pos := fset.Position(field.Tag.ValuePos)
