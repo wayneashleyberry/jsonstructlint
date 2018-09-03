@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/parser"
+	"go/token"
 	"go/types"
 	"log"
 	"os"
@@ -64,8 +66,27 @@ func main() {
 				pos := pkg.Fset.Position(field.Pos())
 				tag := reflect.StructTag(strukt.Tag(i))
 				val, ok := tag.Lookup("json")
+				ignore := false
 
-				if ok {
+				for _, file := range pkg.GoFiles {
+					if file == pos.Filename {
+						fset := token.NewFileSet()
+						f, err := parser.ParseFile(fset, pos.Filename, nil, parser.ParseComments)
+						if err != nil {
+							log.Fatal(err)
+						}
+						for _, commentGroup := range f.Comments {
+							for _, comment := range commentGroup.List {
+								commentPos := pkg.Fset.Position(comment.Pos())
+								if commentPos.Line == pos.Line {
+									ignore = containsIgnoreString(comment.Text)
+								}
+							}
+						}
+					}
+				}
+
+				if ignore == false && ok {
 					if strings.Contains(val, ",") {
 						parts := strings.Split(val, ",")
 						val = parts[0]
