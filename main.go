@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"log"
 	"os"
 	"reflect"
@@ -17,12 +18,28 @@ import (
 
 func main() {
 	flag.Parse()
-	pkgs, err := packages.Load(nil, flag.Args()...)
-	if err != nil {
-		log.Fatal(err)
+
+	importPaths := flag.Args()
+	if len(importPaths) == 0 {
+		importPaths = []string{"."}
 	}
 
-	messages := []string{}
+	var flags []string
+
+	cfg := &packages.Config{
+		Mode:       packages.LoadSyntax,
+		BuildFlags: flags,
+		Error: func(error) {
+			// don't print type check errors
+		},
+	}
+
+	pkgs, err := packages.Load(cfg, importPaths...)
+	if err != nil {
+		log.Fatalf("could not load packages: %s", err)
+	}
+
+	var lines []string
 
 	dir, err := os.Getwd()
 	if err != nil {
@@ -30,16 +47,59 @@ func main() {
 	}
 
 	for _, pkg := range pkgs {
-		for _, filename := range pkg.GoFiles {
-			filename = strings.Replace(filename, dir, ".", 1)
-			messages = append(messages, lint(filename)...)
+		for _, obj := range pkg.TypesInfo.Defs {
+			if obj == nil {
+				continue
+			}
+
+			if _, ok := obj.(*types.TypeName); !ok {
+				continue
+			}
+
+			typ, ok := obj.Type().(*types.Named)
+			if !ok {
+				continue
+			}
+
+			strukt, ok := typ.Underlying().(*types.Struct)
+			if !ok {
+				continue
+			}
+
+			for i := 0; i < strukt.NumFields(); i++ {
+				field := strukt.Field(i)
+				pos := pkg.Fset.Position(field.Pos())
+				relname := strings.Replace(pos.Filename, dir, ".", 1)
+				tag := reflect.StructTag(strukt.Tag(i))
+				val, ok := tag.Lookup("json")
+
+				if ok {
+					if strings.Contains(val, ",") {
+						parts := strings.Split(val, ",")
+						val = parts[0]
+					}
+
+					if trim(val) != val {
+						lines = append(
+							lines,
+							fmt.Sprintf(`%s:%d: "%s" contains whitespace`, relname, pos.Line, val),
+						)
+					} else if !isCamelCase(val) {
+						lines = append(
+							lines,
+							fmt.Sprintf(`%s:%d: "%s" is not camelcase`, relname, pos.Line, val),
+						)
+					}
+				}
+			}
 		}
 	}
 
-	if len(messages) != 0 {
-		for _, message := range messages {
-			fmt.Println(message)
-		}
+	for _, line := range lines {
+		fmt.Println(line)
+	}
+
+	if len(lines) > 0 {
 		os.Exit(1)
 	}
 }
