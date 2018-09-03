@@ -15,3 +15,9 @@ tesdata/testdata.go:13:2: Thing.F3 is missing a struct tag
 tesdata/testdata.go:25:3: "Inline Struct" contains whitespace
 tesdata/testdata.go:30:4: "Super Inline" contains whitespace
 ```
+
+### Rules
+
+- `json` struct tags must be lower camel case eg. `camelCase`
+- `json` struct tags may not contain whitespace
+- If a single struct field has a `json` tag, all fields must
