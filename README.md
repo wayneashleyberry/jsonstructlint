@@ -19,5 +19,5 @@ tesdata/testdata.go:30:4: "Super Inline" contains whitespace
 ### Rules
 
 - `json` struct tags must be lower camel case eg. `camelCase`
-- `json` struct tags may not contain whitespace
-- If a single struct field has a `json` tag, all fields must
+- `json` struct tags must not contain whitespace
+- `json` struct tags must exist on all fields, if they exist on one
