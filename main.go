@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go/ast"
 	"go/parser"
 	"go/token"
 	"go/types"
@@ -67,12 +66,12 @@ func checkStruct(pkg *packages.Package, strukt *types.Struct) []string {
 			if trim(val) != val {
 				lines = append(
 					lines,
-					fmt.Sprintf(`%s: "%s" contains whitespace`, pos, val),
+					fmt.Sprintf(`%s: "%s" contains whitespace`, formatpos(pos), val),
 				)
 			} else if !isCamelCase(val) {
 				lines = append(
 					lines,
-					fmt.Sprintf(`%s: "%s" is not camelcase`, pos, val),
+					fmt.Sprintf(`%s: "%s" is not camelcase`, formatpos(pos), val),
 				)
 			}
 		} else {
@@ -87,12 +86,17 @@ func checkStruct(pkg *packages.Package, strukt *types.Struct) []string {
 			pos := pkg.Fset.Position(field.Pos())
 			lines = append(
 				lines,
-				fmt.Sprintf(`%s: %s is missing a struct tag`, pos, field.Name()),
+				fmt.Sprintf(`%s: %s is missing a struct tag`, formatpos(pos), field.Name()),
 			)
 		}
 	}
 
 	return lines
+}
+
+func formatpos(pos token.Position) string {
+	cwd, _ := os.Getwd()
+	return strings.Replace(pos.String(), cwd+"/", "", 1)
 }
 
 func main() {
@@ -160,24 +164,6 @@ func isCamelCase(val string) bool {
 	}
 
 	return true
-}
-
-func shouldIgnore(field *ast.Field) bool {
-	if field.Comment == nil {
-		return false
-	}
-
-	if len(field.Comment.List) == 0 {
-		return false
-	}
-
-	for _, comment := range field.Comment.List {
-		if containsIgnoreString(comment.Text) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func containsIgnoreString(in string) bool {

@@ -1,4 +1,4 @@
-package testdata
+package samples
 
 // NoTags has no json tags
 type NoTags struct {
