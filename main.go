@@ -16,6 +16,85 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+func checkStruct(pkg *packages.Package, strukt *types.Struct) []string {
+	hasJSON := []int{}
+	missingJSON := []int{}
+	lines := []string{}
+
+	for i := 0; i < strukt.NumFields(); i++ {
+		field := strukt.Field(i)
+
+		sstrukt, ok := field.Type().(*types.Struct)
+		if ok {
+			return checkStruct(pkg, sstrukt)
+		}
+
+		pos := pkg.Fset.Position(field.Pos())
+		tag := reflect.StructTag(strukt.Tag(i))
+		val, ok := tag.Lookup("json")
+		ignore := false
+
+		for _, file := range pkg.GoFiles {
+			if file == pos.Filename {
+				fset := token.NewFileSet()
+				f, err := parser.ParseFile(fset, pos.Filename, nil, parser.ParseComments)
+				if err != nil {
+					log.Fatal(err)
+				}
+				for _, commentGroup := range f.Comments {
+					for _, comment := range commentGroup.List {
+						commentPos := pkg.Fset.Position(comment.Pos())
+						if commentPos.Line == pos.Line {
+							ignore = containsIgnoreString(comment.Text)
+						}
+					}
+				}
+			}
+		}
+
+		if ignore {
+			continue
+		}
+
+		if ok {
+			hasJSON = append(hasJSON, i)
+
+			if strings.Contains(val, ",") {
+				parts := strings.Split(val, ",")
+				val = parts[0]
+			}
+
+			if trim(val) != val {
+				lines = append(
+					lines,
+					fmt.Sprintf(`%s: "%s" contains whitespace`, pos, val),
+				)
+			} else if !isCamelCase(val) {
+				lines = append(
+					lines,
+					fmt.Sprintf(`%s: "%s" is not camelcase`, pos, val),
+				)
+			}
+		} else {
+			missingJSON = append(missingJSON, i)
+		}
+	}
+
+	if len(hasJSON) > 0 && len(missingJSON) > 0 {
+		// some fields in the struct are missing json
+		for _, i := range missingJSON {
+			field := strukt.Field(i)
+			pos := pkg.Fset.Position(field.Pos())
+			lines = append(
+				lines,
+				fmt.Sprintf(`%s: %s is missing a struct tag`, pos, field.Name()),
+			)
+		}
+	}
+
+	return lines
+}
+
 func main() {
 	flag.Parse()
 
@@ -58,73 +137,7 @@ func main() {
 				continue
 			}
 
-			hasJSON := []int{}
-			missingJSON := []int{}
-
-			for i := 0; i < strukt.NumFields(); i++ {
-				field := strukt.Field(i)
-				pos := pkg.Fset.Position(field.Pos())
-				tag := reflect.StructTag(strukt.Tag(i))
-				val, ok := tag.Lookup("json")
-				ignore := false
-
-				for _, file := range pkg.GoFiles {
-					if file == pos.Filename {
-						fset := token.NewFileSet()
-						f, err := parser.ParseFile(fset, pos.Filename, nil, parser.ParseComments)
-						if err != nil {
-							log.Fatal(err)
-						}
-						for _, commentGroup := range f.Comments {
-							for _, comment := range commentGroup.List {
-								commentPos := pkg.Fset.Position(comment.Pos())
-								if commentPos.Line == pos.Line {
-									ignore = containsIgnoreString(comment.Text)
-								}
-							}
-						}
-					}
-				}
-
-				if ignore == true {
-					continue
-				}
-
-				if ok {
-					hasJSON = append(hasJSON, i)
-
-					if strings.Contains(val, ",") {
-						parts := strings.Split(val, ",")
-						val = parts[0]
-					}
-
-					if trim(val) != val {
-						lines = append(
-							lines,
-							fmt.Sprintf(`%s: "%s" contains whitespace`, pos, val),
-						)
-					} else if !isCamelCase(val) {
-						lines = append(
-							lines,
-							fmt.Sprintf(`%s: "%s" is not camelcase`, pos, val),
-						)
-					}
-				} else {
-					missingJSON = append(missingJSON, i)
-				}
-			}
-
-			if len(hasJSON) > 0 && len(missingJSON) > 0 {
-				// some fields in the struct are missing json
-				for _, i := range missingJSON {
-					field := strukt.Field(i)
-					pos := pkg.Fset.Position(field.Pos())
-					lines = append(
-						lines,
-						fmt.Sprintf(`%s: %s.%s is missing a struct tag`, pos, typ.Obj().Name(), field.Name()),
-					)
-				}
-			}
+			lines = append(lines, checkStruct(pkg, strukt)...)
 		}
 	}
 

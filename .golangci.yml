@@ -1,0 +1,9 @@
+run:
+  tests: false
+  skip-dirs:
+    - testdata
+
+linters:
+  enable-all: true
+  disable:
+    - lll
