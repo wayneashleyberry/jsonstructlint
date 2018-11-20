@@ -1,4 +1,4 @@
-package testdata
+package samples
 
 // NoTags has no json tags
 type NoTags struct {
@@ -32,4 +32,13 @@ func hasInlineStruct() {
 	}
 
 	fn()
+}
+
+func nested() {
+	type RequestBody struct {
+		File struct {
+			Name             string `json:"FileName"`
+			MissingStructTag string
+		} `json:"file"`
+	}
 }
