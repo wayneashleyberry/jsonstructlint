@@ -110,7 +110,7 @@ func main() {
 	var flags []string
 
 	cfg := &packages.Config{
-		Mode:       packages.LoadSyntax,
+		Mode:       packages.LoadTypes | packages.NeedSyntax | packages.NeedTypesInfo,
 		BuildFlags: flags,
 	}
 
