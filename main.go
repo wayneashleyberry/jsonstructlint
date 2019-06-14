@@ -99,6 +99,43 @@ func formatpos(pos token.Position) string {
 	return strings.Replace(pos.String(), cwd+"/", "", 1)
 }
 
+func isCamelCase(val string) bool {
+	if strings.Contains(val, "_") {
+		return false
+	}
+
+	if strings.ToLower(string(val[0])) != string(val[0]) {
+		return false
+	}
+
+	return true
+}
+
+func containsIgnoreString(in string) bool {
+	if !strings.Contains(in, "nolint:") {
+		return false
+	}
+
+	parts := strings.Split(in, ":")
+
+	for _, part := range parts[1:] {
+		if strings.Contains(part, "jsonstructlint") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func trim(in string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, in)
+}
+
 func main() {
 	flag.Parse()
 
@@ -152,41 +189,4 @@ func main() {
 	if len(lines) > 0 {
 		os.Exit(1)
 	}
-}
-
-func isCamelCase(val string) bool {
-	if strings.Contains(val, "_") {
-		return false
-	}
-
-	if strings.ToLower(string(val[0])) != string(val[0]) {
-		return false
-	}
-
-	return true
-}
-
-func containsIgnoreString(in string) bool {
-	if !strings.Contains(in, "nolint:") {
-		return false
-	}
-
-	parts := strings.Split(in, ":")
-
-	for _, part := range parts[1:] {
-		if strings.Contains(part, "jsonstructlint") {
-			return true
-		}
-	}
-
-	return false
-}
-
-func trim(in string) string {
-	return strings.Map(func(r rune) rune {
-		if unicode.IsSpace(r) {
-			return -1
-		}
-		return r
-	}, in)
 }
