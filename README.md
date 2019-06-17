@@ -20,6 +20,19 @@ samples/testdata.go:41:4: MissingStructTag is missing a struct tag
 
 ### Rules
 
-- `json` struct tags must be lower camel case eg. `camelCase`
-- `json` struct tags must not contain whitespace
-- `json` struct tags must exist on all fields, if they exist on one
+* `json` struct tags must be lower camel case eg. `camelCase`
+* `json` struct tags must not contain whitespace
+* `json` struct tags must exist on all fields, if they exist on one
+
+### Editor Config
+
+This linter checks that code conforms to the following vscode config:
+
+```json
+"go.addTags": {
+  "tags": "json",
+  "options": "json=omitempty",
+  "promptForTags": false,
+  "transform": "camelcase"
+}
+```
