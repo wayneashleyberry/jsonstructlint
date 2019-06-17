@@ -1,9 +1,7 @@
 run:
   tests: false
   skip-dirs:
-    - samples
+    - test_data
 
 linters:
   enable-all: true
-  disable:
-    - lll

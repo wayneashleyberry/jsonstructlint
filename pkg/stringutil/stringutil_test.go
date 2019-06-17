@@ -1,10 +1,10 @@
-package main
+package stringutil
 
 import (
 	"testing"
 )
 
-func Test_isCamelCase(t *testing.T) {
+func Test_IsCamelCase(t *testing.T) {
 	type args struct {
 		val string
 	}
@@ -37,40 +37,54 @@ func Test_isCamelCase(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isCamelCase(tt.args.val); got != tt.want {
-				t.Errorf("isCamelCase() = %v, want %v", got, tt.want)
+			if got := IsCamelCase(tt.args.val); got != tt.want {
+				t.Errorf("IsCamelCase() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_trim(t *testing.T) {
+func TestIsTrimmed(t *testing.T) {
 	type args struct {
 		in string
 	}
 	tests := []struct {
 		name string
 		args args
-		want string
+		want bool
 	}{
 		{
-			name: "simple example",
+			name: "trimmed",
 			args: args{
-				in: " foo  bar ",
+				in: "foo",
 			},
-			want: "foobar",
+			want: true,
+		},
+		{
+			name: "leading whitespace",
+			args: args{
+				in: "  foo",
+			},
+			want: false,
+		},
+		{
+			name: "trailing whitespace",
+			args: args{
+				in: "foo  ",
+			},
+			want: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := trim(tt.args.in); got != tt.want {
-				t.Errorf("trim() = %v, want %v", got, tt.want)
+			if got := IsTrimmed(tt.args.in); got != tt.want {
+				t.Errorf("IsTrimmed() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_containsIgnoreString(t *testing.T) {
+func Test_ContainsIgnoreString(t *testing.T) {
 	type args struct {
 		in string
 	}
@@ -110,8 +124,8 @@ func Test_containsIgnoreString(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := containsIgnoreString(tt.args.in); got != tt.want {
-				t.Errorf("containsIgnoreString() = %v, want %v", got, tt.want)
+			if got := ContainsIgnoreString(tt.args.in); got != tt.want {
+				t.Errorf("ContainsIgnoreString() = %v, want %v", got, tt.want)
 			}
 		})
 	}
