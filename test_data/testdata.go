@@ -1,12 +1,12 @@
 package samples
 
-// NoTags has no json tags
+// NoTags has no json tags.
 type NoTags struct {
 	F1 string
 	F2 string
 }
 
-// Thing holds other things
+// Thing holds other things.
 type Thing struct {
 	F1  string `json:"x"`
 	F2  []int

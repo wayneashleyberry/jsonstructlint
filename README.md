@@ -20,9 +20,9 @@ samples/testdata.go:41:4: MissingStructTag is missing a struct tag
 
 ### Rules
 
-* `json` struct tags must be lower camel case eg. `camelCase`
-* `json` struct tags must not contain whitespace
-* `json` struct tags must exist on all fields, if they exist on one
+- `json` struct tags must be lower camel case eg. `camelCase`
+- `json` struct tags must not contain whitespace
+- `json` struct tags must exist on all fields, if they exist on one
 
 ### Editor Config
 

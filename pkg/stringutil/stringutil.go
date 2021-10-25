@@ -9,7 +9,7 @@ const (
 	ignoreString = "jsonstructlint"
 )
 
-// IsCamelCase implementation
+// IsCamelCase implementation.
 func IsCamelCase(val string) bool {
 	if strings.Contains(val, "_") {
 		return false
@@ -22,19 +22,20 @@ func IsCamelCase(val string) bool {
 	return true
 }
 
-// IsTrimmed implementation
+// IsTrimmed implementation.
 func IsTrimmed(in string) bool {
 	trimmed := strings.Map(func(r rune) rune {
 		if unicode.IsSpace(r) {
 			return -1
 		}
+
 		return r
 	}, in)
 
 	return in == trimmed
 }
 
-// ContainsIgnoreString implementation
+// ContainsIgnoreString implementation.
 func ContainsIgnoreString(in string) bool {
 	if !strings.Contains(in, "nolint:") {
 		return false
