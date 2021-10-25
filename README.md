@@ -6,16 +6,18 @@
 ```sh
 go get -u github.com/wayneashleyberry/jsonstructlint
 jsonstructlint ./...
-samples/testdata.go:14:2: "x_y" is not camelcase
-samples/testdata.go:16:2: "foo bar" contains whitespace
-samples/testdata.go:17:2: "TitleCase" is not camelcase
-samples/testdata.go:18:2: "a b" contains whitespace
-samples/testdata.go:12:2: F2 is missing a struct tag
-samples/testdata.go:13:2: F3 is missing a struct tag
-samples/testdata.go:25:3: "Inline Struct" contains whitespace
-samples/testdata.go:30:4: "Super Inline" contains whitespace
-samples/testdata.go:40:4: "FileName" is not camelcase
-samples/testdata.go:41:4: MissingStructTag is missing a struct tag
+test_data/testdata.go:14:2: `x_y` is not camelcase
+test_data/testdata.go:16:2: `foo bar` contains whitespace
+test_data/testdata.go:17:2: `TitleCase` is not camelcase
+test_data/testdata.go:18:2: `a b` contains whitespace
+test_data/testdata.go:25:3: `Inline Struct` contains whitespace
+test_data/testdata.go:25:3: `Inline Struct` is not camelcase
+test_data/testdata.go:30:4: `Super Inline` contains whitespace
+test_data/testdata.go:30:4: `Super Inline` is not camelcase
+test_data/testdata.go:40:4: `FileName` is not camelcase
+test_data/testdata.go:12:2: `F2` is missing a json tag
+test_data/testdata.go:13:2: `F3` is missing a json tag
+test_data/testdata.go:41:4: `MissingStructTag` is missing a json tag
 ```
 
 ### Rules
