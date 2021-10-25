@@ -1,7 +1,17 @@
 > An opinionated linter for json struct tags in Go
 
-[![Build Status](https://travis-ci.org/wayneashleyberry/jsonstructlint.svg?branch=master)](https://travis-ci.org/wayneashleyberry/jsonstructlint)
+[![Go](https://github.com/wayneashleyberry/jsonstructlint/actions/workflows/go.yml/badge.svg)](https://github.com/wayneashleyberry/jsonstructlint/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/wayneashleyberry/jsonstructlint)](https://goreportcard.com/report/github.com/wayneashleyberry/jsonstructlint)
+
+This linter is based on [a post by Fatih Arslan](https://arslan.io/2019/06/13/using-go-analysis-to-write-a-custom-linter/), which is a fantastic read and highly recommended.
+
+### Rules
+
+- `json` struct tags must be lower camel case eg. `camelCase`
+- `json` struct tags must not contain whitespace
+- `json` struct tags must exist on all fields, if they exist on one
+
+### Example
 
 ```sh
 go get -u github.com/wayneashleyberry/jsonstructlint
@@ -19,12 +29,6 @@ test_data/testdata.go:12:2: `F2` is missing a json tag
 test_data/testdata.go:13:2: `F3` is missing a json tag
 test_data/testdata.go:41:4: `MissingStructTag` is missing a json tag
 ```
-
-### Rules
-
-- `json` struct tags must be lower camel case eg. `camelCase`
-- `json` struct tags must not contain whitespace
-- `json` struct tags must exist on all fields, if they exist on one
 
 ### Editor Config
 
