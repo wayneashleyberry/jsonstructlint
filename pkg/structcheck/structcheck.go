@@ -11,7 +11,7 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-// Analyzer will create a new analyzer
+// Analyzer will create a new analyzer.
 func Analyzer() *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name:     "structcheck",
@@ -55,6 +55,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			if f.Tag == nil {
 				hasNoJSON++
 				missing = append(missing, f)
+
 				continue
 			}
 

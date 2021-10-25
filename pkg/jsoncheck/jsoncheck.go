@@ -12,7 +12,7 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-// Analyzer will create a new analyzer
+// Analyzer will create a new analyzer.
 func Analyzer() *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name:     "jsoncheck",
@@ -66,6 +66,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 func lookupJSON(f *ast.Field) (string, bool) {
 	tag := reflect.StructTag(f.Tag.Value[1 : len(f.Tag.Value)-1])
+
 	val, ok := tag.Lookup("json")
 	if !ok {
 		return "", false
